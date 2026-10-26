@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Local databases and personal data
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.sqlite-journal
+banco.db*
+backup_banco.db*
+backups/
+backups_*/
+exports/
+exportacoes/
+relatorios_gerados/
+
+# Logs / temporary
+*.log
+*.tmp
+*.bak
+~$*
+
+# Build
+build/
+dist/
+*.spec
+*.exe
+*.msi
+
+# Secrets / private material
+.env
+.env.*
+*.pem
+*.key
+*_private*
+*PRIVATE*
+licencas_geradas/
+licenses_generated/
+licensing_private/
