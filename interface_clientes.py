@@ -101,6 +101,7 @@ def garantir_campos_recuperacao():
 def configurar_codigo_recuperacao(usuario_logado, parent):
     """Permite ao utilizador autenticado criar um novo código de recuperação."""
     janela = tk.Toplevel(parent)
+    aplicar_icone_janela(janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Código de recuperação")
     janela.geometry("480x430")
@@ -170,6 +171,7 @@ def configurar_codigo_recuperacao(usuario_logado, parent):
 def mostrar_codigo_recuperacao(parent, codigo):
     """Mostra o código uma vez e permite copiá-lo para a área de transferência."""
     janela = tk.Toplevel(parent)
+    aplicar_icone_janela(janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Código de recuperação")
     janela.geometry("480x300")
@@ -205,6 +207,7 @@ def mostrar_codigo_recuperacao(parent, codigo):
 def recuperar_senha(parent):
     """Redefine a senha usando um código de recuperação de uso único."""
     janela = tk.Toplevel(parent)
+    aplicar_icone_janela(janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Recuperar senha")
     janela.geometry("480x520")
@@ -1064,6 +1067,19 @@ def obter_tema_usuario(usuario):
 #   72 = tamanho original dos PNGs enviados
 TAMANHO_ICONE = 50
 
+
+def aplicar_icone_janela(janela):
+    """Aplica o ícone padrão TB Software a qualquer janela Tkinter."""
+    try:
+        pasta_programa = Path(__file__).resolve().parent
+        icone_path = pasta_programa / "assets" / "TB_Software.ico"
+        if icone_path.exists():
+            janela.iconbitmap(str(icone_path))
+    except Exception:
+        # O ícone é apenas visual; falhar aqui não deve impedir a aplicação de abrir.
+        pass
+
+
 # ============================================================
 #                     TAMANHO DO LOGO
 # ============================================================
@@ -1589,6 +1605,7 @@ def autenticar_autorizador(usuario, senha):
 def solicitar_autorizacao(parent, acao):
     """Abre a janela de autorização para ações administrativas."""
     janela = tk.Toplevel(parent)
+    aplicar_icone_janela(janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Autorização")
     janela.geometry("500x390")
@@ -1807,6 +1824,8 @@ def abrir_historico_atendimento_cliente(parent, cliente_id, cliente_nome):
         return existente
 
     janela = tk.Toplevel(parent)
+
+    aplicar_icone_janela(janela)
     registar_janela_aberta(chave, janela)
     registrar_tema_janela(janela)
     janela.title(f"TB Software - Atendimento: {cliente_nome}")
@@ -1865,6 +1884,7 @@ def abrir_historico_atendimento_cliente(parent, cliente_id, cliente_nome):
 
     def novo_registo():
         editor = tk.Toplevel(janela)
+        aplicar_icone_janela(editor)
         registrar_tema_janela(editor)
         editor.title("Novo registo de atendimento")
         editor.geometry("520x430")
@@ -2144,6 +2164,7 @@ def mostrar_aviso_lembretes(parent, usuario_logado, itens, resumo_inicio=False):
     existente = focar_janela_aberta("aviso_lembretes")
     if existente is None:
         janela = tk.Toplevel(parent)
+        aplicar_icone_janela(janela)
         registar_janela_aberta("aviso_lembretes", janela)
         registrar_tema_janela(janela)
         janela.title("TB Software - Lembretes" if not resumo_inicio else "TB Software - Lembretes de hoje")
@@ -2318,6 +2339,8 @@ def abrir_lembretes(parent, usuario_logado):
         return existente
 
     janela = tk.Toplevel(parent)
+
+    aplicar_icone_janela(janela)
     registar_janela_aberta("lembretes_clientes", janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Lembretes e tarefas")
@@ -2447,6 +2470,8 @@ def abrir_lembretes(parent, usuario_logado):
             return
 
         editor = tk.Toplevel(janela)
+
+        aplicar_icone_janela(editor)
         registrar_tema_janela(editor)
         editor.title("Novo lembrete")
         editor.geometry("540x510")
@@ -2607,6 +2632,8 @@ def abrir_relatorios(parent):
         return existente
 
     janela = tk.Toplevel(parent)
+
+    aplicar_icone_janela(janela)
     registar_janela_aberta("relatorios", janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Relatórios")
@@ -3188,6 +3215,8 @@ def abrir_dialogo_imprimir_cliente(parent, cliente):
         return
 
     janela = tk.Toplevel(parent)
+
+    aplicar_icone_janela(janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Imprimir Cliente")
     janela.geometry("480x320")
@@ -3370,6 +3399,8 @@ def abrir_historico_auditoria(parent, usuario_logado):
         return existente
 
     janela = tk.Toplevel(parent)
+
+    aplicar_icone_janela(janela)
     registar_janela_aberta("historico_auditoria", janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Histórico de Alterações")
@@ -3445,6 +3476,7 @@ def abrir_dados_seguranca(parent, usuario_logado):
     if existente is not None:
         return existente
     janela = tk.Toplevel(parent)
+    aplicar_icone_janela(janela)
     registar_janela_aberta("dados_seguranca", janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Dados e Segurança")
@@ -3593,6 +3625,8 @@ def abrir_utilizadores(parent, usuario_logado):
         return existente
 
     janela = tk.Toplevel(parent)
+
+    aplicar_icone_janela(janela)
     registar_janela_aberta("utilizadores", janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Utilizadores")
@@ -3720,6 +3754,8 @@ def abrir_utilizadores(parent, usuario_logado):
             return
 
         editor = tk.Toplevel(janela)
+
+        aplicar_icone_janela(editor)
         registrar_tema_janela(editor)
         editor.title("TB Software - Alterar Utilizador")
         editor.geometry("470x400")
@@ -3952,6 +3988,8 @@ def abrir_utilizadores(parent, usuario_logado):
         perfil_autorizador = autorizacao["perfil"]
 
         editor = tk.Toplevel(janela)
+
+        aplicar_icone_janela(editor)
         registrar_tema_janela(editor)
         editor.title("TB Software - Novo Utilizador")
         editor.geometry("470x410")
@@ -4356,6 +4394,8 @@ def abrir_configuracoes(parent, usuario_logado):
         return existente
 
     janela = tk.Toplevel(parent)
+
+    aplicar_icone_janela(janela)
     registar_janela_aberta("configuracoes", janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Configurações")
@@ -4523,6 +4563,7 @@ def abrir_configuracoes(parent, usuario_logado):
 def janela_principal(usuario_logado, tema="Claro"):
     global ATUALIZAR_DASHBOARD_CALLBACK
     janela = tk.Tk()
+    aplicar_icone_janela(janela)
     definir_paleta_tema(tema)
     janela.title("TB Software - Sistema de Clientes")
     janela.geometry("1000x680")
@@ -5064,6 +5105,7 @@ def janela_principal(usuario_logado, tema="Claro"):
     def trocar_utilizador():
         """Autentica outra conta e muda o utilizador da sessão atual."""
         janela_troca = tk.Toplevel(janela)
+        aplicar_icone_janela(janela_troca)
         registrar_tema_janela(janela_troca)
         janela_troca.title("TB Software - Trocar de Utilizador")
         janela_troca.geometry("430x340")
@@ -5595,6 +5637,8 @@ def cadastrar_cliente():
         return existente
 
     janela_cadastro = tk.Toplevel()
+
+    aplicar_icone_janela(janela_cadastro)
     janela_cadastro.withdraw()  # Evita aparecer no canto antes de estar posicionada.
     registar_janela_aberta("novo_cliente", janela_cadastro)
     registrar_tema_janela(janela_cadastro)
@@ -6243,6 +6287,8 @@ def listar_clientes():
         return existente
 
     janela_lista = tk.Toplevel()
+
+    aplicar_icone_janela(janela_lista)
     registar_janela_aberta("ver_clientes", janela_lista)
     registrar_tema_janela(janela_lista)
 
@@ -6696,6 +6742,8 @@ def procurar_cliente():
         return existente
 
     janela_procurar = tk.Toplevel()
+
+    aplicar_icone_janela(janela_procurar)
     janela_procurar.withdraw()  # Evita aparecer no canto antes de estar posicionada.
     registar_janela_aberta("procurar_cliente", janela_procurar)
     registrar_tema_janela(janela_procurar)
@@ -7638,6 +7686,8 @@ def alterar_senha(usuario_logado):
         return existente
 
     janela_senha = tk.Toplevel()
+
+    aplicar_icone_janela(janela_senha)
     registar_janela_aberta(chave_janela, janela_senha)
     registrar_tema_janela(janela_senha)
 
@@ -7916,6 +7966,7 @@ def alterar_senha(usuario_logado):
 def solicitar_substituicao_senha_padrao(parent, usuario):
     """Impede a utilização continuada de admin/1234 numa base antiga."""
     janela = tk.Toplevel(parent)
+    aplicar_icone_janela(janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Atualização de segurança")
     janela.geometry("470x350")
@@ -8029,6 +8080,8 @@ def configurar_primeiro_administrador(parent):
         return None
 
     janela = tk.Toplevel(parent)
+
+    aplicar_icone_janela(janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Configuração inicial")
     janela.geometry("490x470")
@@ -8178,6 +8231,8 @@ NOME_EMPRESA = _configuracoes_empresa.get("nome_empresa", NOME_EMPRESA)
 SLOGAN_EMPRESA = _configuracoes_empresa.get("slogan_empresa", SLOGAN_EMPRESA)
 
 janela_login = tk.Tk()
+
+aplicar_icone_janela(janela_login)
 # Manter o login oculto enquanto os widgets são criados e posicionados; assim
 # o Windows nunca mostra a geometria provisória pequena no canto do ecrã.
 janela_login.withdraw()
