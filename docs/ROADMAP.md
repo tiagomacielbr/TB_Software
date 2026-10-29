@@ -41,7 +41,7 @@
 - [x] Criar documentação técnica para entrevistas.
 - [x] Adicionar CI com GitHub Actions.
 - [ ] Adicionar capturas de ecrã reais usando apenas dados fictícios.
-- [ ] Decidir se o repositório será público ou continuará privado.
+- [x] Decidir se o repositório será público ou continuará privado — mantido privado nesta fase.
 
 ## Estado atual
 
