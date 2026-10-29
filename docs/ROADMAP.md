@@ -43,12 +43,20 @@
 - [ ] Adicionar capturas de ecrã reais usando apenas dados fictícios.
 - [ ] Decidir se o repositório será público ou continuará privado.
 
-## Próximo passo recomendado
+## Estado atual
 
-A partir daqui, novas funcionalidades não são obrigatórias para apresentar o projeto. O maior retorno para o portefólio vem de:
+A versão **v1.0.2** está publicada e o pipeline de release Windows foi concluído com sucesso.
+
+A licença do repositório já está definida como **MIT**.
+
+### Próximo passo recomendado
+
+O maior retorno para o portefólio agora vem de:
 
 1. uma demonstração visual limpa;
 2. capturas de ecrã com dados fictícios;
-3. uma explicação curta da arquitetura;
-4. capacidade de explicar decisões técnicas numa entrevista;
-5. evolução gradual dos testes e da refatoração.
+3. teste manual de regressão no Windows;
+4. aumento gradual da cobertura de testes;
+5. refatoração incremental do módulo principal.
+
+Novas funcionalidades não são obrigatórias para apresentar a versão atual como projeto de portefólio.
