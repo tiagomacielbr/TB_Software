@@ -370,6 +370,10 @@ Uma explicação curta para uma entrevista:
 
 ---
 
+## 🎤 Apresentação rápida
+
+> "Este é o TB Software, uma aplicação desktop que desenvolvi em Python para gestão de clientes. Utilizei Tkinter para a interface e SQLite para persistência local. Além do CRUD de clientes, implementei autenticação, permissões, recuperação de password, auditoria, histórico, lembretes, relatórios, exportações e backups. Também configurei testes automatizados, GitHub Actions e um pipeline que gera e publica o executável Windows. A próxima etapa é aumentar a cobertura de testes e refatorar gradualmente o módulo principal."
+
 ## 👨‍💻 Autor
 
 **Tiago Rogerio Santos Maciel**
