@@ -1,71 +1,116 @@
-# TB Software — Sistema de Gestão de Clientes
+<div align="center">
+
+<img src="assets/tb_software_logo.png" alt="TB Software" width="180">
+
+# TB Software
+
+### Sistema Desktop de Gestão de Clientes
+
+Aplicação desktop desenvolvida em **Python**, com **Tkinter/ttk** e **SQLite**, criada como projeto prático de portefólio.
 
 [![CI](https://github.com/tiagomacielbr/TB_Software/actions/workflows/ci.yml/badge.svg)](https://github.com/tiagomacielbr/TB_Software/actions)
+[![Release](https://img.shields.io/github/v/release/tiagomacielbr/TB_Software?label=release)](https://github.com/tiagomacielbr/TB_Software/releases)
+[![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 
-Aplicação desktop de **gestão de clientes**, desenvolvida em **Python**, com interface gráfica em **Tkinter/ttk** e persistência local em **SQLite**.
+</div>
 
-O projeto foi desenvolvido como aplicação prática de portefólio, com foco em **gestão de dados, autenticação, segurança de passwords, auditoria, backups, exportação de relatórios, testes automatizados e CI/CD**.
+---
 
 ## 📌 Sobre o projeto
 
-O TB Software simula uma solução utilizada por uma pequena empresa para centralizar:
+O **TB Software** é uma aplicação desktop de gestão de clientes que reúne, numa única solução local, funcionalidades de:
 
-- dados de clientes;
-- utilizadores e permissões;
+- gestão de clientes;
+- autenticação e permissões;
 - histórico de atendimentos;
 - lembretes;
-- relatórios e exportações;
-- backups;
-- configurações da empresa.
+- relatórios;
+- exportação de dados;
+- backups e restauração;
+- auditoria;
+- configurações da aplicação.
 
-O objetivo é demonstrar a capacidade de desenvolver e manter uma aplicação desktop completa, desde a interface e persistência dos dados até testes, versionamento e distribuição.
+O projeto foi desenvolvido para demonstrar não apenas programação em Python, mas também **organização de software, persistência de dados, segurança, testes, versionamento, CI/CD e distribuição para Windows**.
 
-## 🚀 Principais funcionalidades
+---
 
-### Gestão de clientes
+## 🚀 Funcionalidades
+
+### 👥 Gestão de clientes
 
 - Cadastro de clientes
 - Pesquisa, edição e remoção
 - Suporte para particulares e empresas
 - Validação de NIF
+- Consulta por NIF ou passaporte
+- Histórico de atendimento
 
-### Autenticação e segurança
+### 🔐 Autenticação e segurança
 
 - Login de utilizadores
 - Perfis e permissões
 - Configuração do primeiro Administrador na primeira execução
 - Passwords protegidas com **PBKDF2 + salt aleatório**
-- Recuperação de password por código temporário e de utilização única
-- Compatibilidade com hashes anteriores durante a migração
+- Recuperação de password com código temporário de utilização única
+- Compatibilidade com hashes anteriores durante migração
 
-### Gestão e acompanhamento
+### 📊 Relatórios e acompanhamento
 
-- Histórico de atendimentos
-- Sistema de auditoria
+- Dashboard com indicadores
+- Relatórios com filtros por período
+- Clientes por país
+- Clientes por localidade
+- Clientes por tipo
+- Novos clientes por mês
 - Lembretes e notificações
-- Configurações persistentes da empresa
+- Histórico e auditoria
 
-### Relatórios e exportação
+### 📤 Exportação
 
-- Relatórios com filtros
-- Exportação para CSV
-- Exportação para Excel
-- Exportação para PDF
+- CSV
+- Excel
+- PDF
 
-### Base de dados
+### 💾 Dados e backups
 
-- SQLite
+- SQLite local
 - Inicialização automática da estrutura
 - Migrações de schema
 - Integridade referencial
-- Backups e restauração
-- Base de dados local por utilizador
+- Criação de backups
+- Restauração de backups
+- Base de dados local configurável para testes
+
+---
+
+## 🖥️ Interface
+
+O sistema utiliza uma interface desktop com navegação lateral e áreas específicas para cada função.
+
+### Dashboard
+
+![Dashboard do TB Software](assets/dashboard/dashboard.png)
+
+> As imagens de demonstração devem utilizar apenas dados fictícios. Caso uma imagem de demonstração não esteja disponível no repositório, consulte a aplicação diretamente.
+
+### Principais áreas
+
+- Início / Dashboard
+- Clientes
+- Relatórios
+- Lembretes
+- Utilizadores
+- Dados e Segurança
+- Configurações
+- Pesquisa de clientes
+
+---
 
 ## 🛠️ Tecnologias
 
 | Tecnologia | Utilização |
 |---|---|
-| **Python 3** | Linguagem principal |
+| **Python 3.13** | Linguagem principal |
 | **Tkinter / ttk** | Interface gráfica desktop |
 | **SQLite** | Persistência local |
 | **hashlib / secrets** | Segurança e geração de credenciais |
@@ -76,6 +121,8 @@ O objetivo é demonstrar a capacidade de desenvolver e manter uma aplicação de
 | **Git / GitHub** | Versionamento |
 | **GitHub Actions** | CI/CD |
 | **PyInstaller** | Geração do executável Windows |
+
+---
 
 ## 🏗️ Arquitetura atual
 
@@ -97,43 +144,57 @@ e a documentação técnica em:
 
 `docs/`
 
-Mais detalhes:
+### Documentação técnica
 
 - [Arquitetura](docs/ARCHITECTURE.md)
 - [Revisão técnica](docs/PROJECT_REVIEW.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Guia de apresentação técnica](docs/PORTFOLIO.md)
 
+---
+
 ## 📂 Estrutura do projeto
 
 ```text
 TB_Software/
-├── interface_clientes.py
-├── banco.py
-├── clientes.py
-├── assets/
-├── docs/
-├── tests/
-├── requirements.txt
-├── requirements-dev.txt
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml
 │       └── release.yml
-└── .gitignore
+├── assets/
+├── docs/
+├── tests/
+├── interface_clientes.py
+├── banco.py
+├── clientes.py
+├── requirements.txt
+├── requirements-dev.txt
+├── .gitignore
+├── LICENSE
+└── README.md
 ```
+
+---
 
 ## 💻 Instalação no Windows
 
-Abra o PowerShell na pasta do projeto:
+Clone o projeto:
 
 ```powershell
 git clone https://github.com/tiagomacielbr/TB_Software.git
 cd TB_Software
+```
 
+Crie e ative um ambiente virtual:
+
+```powershell
 py -m venv .venv
-.venv\\Scripts\\Activate.ps1
+.\.venv\Scripts\Activate.ps1
+```
 
+Instale as dependências:
+
+```powershell
 python -m pip install --upgrade pip
 pip install -r requirements-dev.txt
 ```
@@ -146,32 +207,32 @@ python interface_clientes.py
 
 > O projeto foi desenvolvido para Windows. O Tkinter precisa estar disponível na instalação do Python.
 
-## 🧪 Testes automatizados
+---
 
-Execute a suíte de testes com:
+## 🧪 Testes
+
+Execute a suíte de testes:
 
 ```powershell
 python -m pytest tests -q
 ```
 
-Última validação local desta versão:
-
-```text
-9 passed, 3 subtests passed
-```
-
-Os testes utilizam bases SQLite temporárias para evitar alterar os dados reais do utilizador.
-
-A suíte cobre, entre outros pontos:
+A suíte atual cobre, entre outros pontos:
 
 - inicialização da base de dados;
 - criação das tabelas;
 - integridade SQLite;
+- validação de NIF;
 - hash de passwords;
 - compatibilidade com hash legado;
 - códigos de recuperação;
 - migrações de schema;
-- criação e validação de backups.
+- criação e validação de backups;
+- verificação de sintaxe Python.
+
+Os testes utilizam bases SQLite temporárias para evitar alterar os dados reais do utilizador.
+
+---
 
 ## 🔄 Integração contínua
 
@@ -184,7 +245,9 @@ O workflow de CI:
 3. instala as dependências;
 4. executa `pytest`.
 
-O CI é executado em pushes para as branches configuradas e em Pull Requests para `main`.
+O CI é executado em alterações na branch principal e em Pull Requests para `main`.
+
+---
 
 ## 📦 Release Windows
 
@@ -202,69 +265,82 @@ Quando uma tag no formato:
 4. gera `TB_Software.exe`;
 5. publica o executável na GitHub Release.
 
-A versão de apresentação atual é:
+### Versão atual
 
 **TB Software v1.0.2**
 
-## 🔐 Dados e segurança
+[Ver releases](https://github.com/tiagomacielbr/TB_Software/releases)
 
-A base de dados é armazenada localmente e **não faz parte do repositório**.
+---
 
-O `.gitignore` evita o versionamento de ficheiros como:
+## 🔐 Dados e privacidade
+
+A base de dados local e os backups **não devem ser publicados no repositório**.
+
+O `.gitignore` exclui ficheiros como:
 
 ```text
 *.db
+*.sqlite
 *.sqlite3
-backups
-.venv
-__pycache__
+backups/
+.venv/
+__pycache__/
+.env
 ```
 
-A instalação vazia não cria uma conta `admin` com password conhecida. O primeiro Administrador é configurado pelo utilizador.
+Durante demonstrações, entrevistas e screenshots devem ser utilizados exclusivamente **dados fictícios**.
 
-Durante demonstrações e entrevistas devem ser utilizados exclusivamente **dados fictícios**.
+A aplicação não cria automaticamente uma conta `admin` com uma password conhecida. O primeiro Administrador é configurado pelo utilizador.
 
-Para testes automatizados, o caminho da base pode ser controlado pela variável:
-
-`TB_SOFTWARE_DB_PATH`
+---
 
 ## ⚠️ Limitações conhecidas
 
 O TB Software é uma versão funcional de portefólio em evolução.
 
-A interface principal ainda concentra bastante código em `interface_clientes.py`, sendo possível realizar uma refatoração gradual para separar responsabilidades.
+Pontos que ainda podem ser melhorados:
 
-Também existem fluxos que merecem testes manuais adicionais no Windows:
+- aumentar a cobertura de testes de CRUD;
+- ampliar testes de permissões, exportações e restauração;
+- executar mais testes manuais de regressão no Windows;
+- refatorar gradualmente `interface_clientes.py`;
+- separar acesso a dados, validação, exportação e interface em módulos menores;
+- avaliar proteção adicional dos dados em repouso.
 
-- primeira execução;
-- login e permissões;
-- exportações;
-- backups e restauração;
-- migração de uma base de dados antiga.
+Estas tarefas estão organizadas no [Roadmap](docs/ROADMAP.md).
 
-Além disso:
-
-- SQLite e os backups não estão encriptados em repouso;
-- a licença do repositório ainda não foi definida;
-- a cobertura de testes de ponta a ponta ainda pode ser ampliada.
-
-Esses pontos estão documentados em [Revisão técnica](docs/PROJECT_REVIEW.md) e no [Roadmap](docs/ROADMAP.md).
+---
 
 ## 🗺️ Roadmap
 
-Próximas melhorias previstas:
+### Concluído
 
-- aumentar a cobertura de testes;
-- testar fluxos completos de CRUD;
-- testar permissões e exportações;
-- testar restauração de backups;
-- realizar testes de regressão no Windows;
-- refatorar gradualmente `interface_clientes.py`;
-- separar acesso a dados, validação, exportação e interface;
-- adicionar capturas de ecrã reais utilizando apenas dados fictícios;
-- decidir a licença do projeto.
+- Organização do projeto
+- `.gitignore`
+- Documentação inicial
+- SQLite centralizado
+- Inicialização segura da base
+- Primeiro Administrador configurável
+- Segurança de passwords
+- Backups
+- Testes automatizados
+- GitHub Actions
+- CI
+- Build Windows com PyInstaller
+- GitHub Release
+- Licença MIT
 
-A estratégia é evoluir através de alterações pequenas e testadas, reduzindo o risco de regressões.
+### Próximos passos
+
+- Aumentar cobertura de testes
+- Testar fluxos completos de CRUD
+- Testar permissões e exportações
+- Testar restauração de backups
+- Refatorar gradualmente o módulo principal
+- Adicionar mais screenshots com dados fictícios
+
+---
 
 ## 🎯 Objetivo de portefólio
 
@@ -282,28 +358,28 @@ O TB Software foi desenvolvido para demonstrar competências práticas em:
 - **Documentação técnica**
 - **Manutenção e evolução incremental de software**
 
-O objetivo não é demonstrar apenas conhecimento de sintaxe Python, mas capacidade de trabalhar com um software real em evolução.
+O objetivo é demonstrar capacidade de trabalhar com um software real em evolução, e não apenas criar scripts isolados.
 
-## 🎥 Demonstração
+---
 
-Fluxo recomendado para apresentar o projeto:
+## 🎤 Como apresentar o projeto
 
-1. Abrir a aplicação.
-2. Demonstrar a autenticação.
-3. Mostrar o dashboard.
-4. Criar um cliente fictício.
-5. Pesquisar e editar o cliente.
-6. Mostrar histórico e auditoria.
-7. Demonstrar um lembrete.
-8. Mostrar uma exportação.
-9. Demonstrar backup/restauração.
-10. Apresentar os testes automatizados.
-11. Mostrar o GitHub Actions.
+Uma explicação curta para uma entrevista:
 
-> **Importante:** utilizar apenas dados fictícios durante demonstrações e entrevistas.
+> "Este é o TB Software, uma aplicação desktop que desenvolvi em Python para gestão de clientes. Utilizei Tkinter para a interface e SQLite para persistência. Além do CRUD de clientes, implementei autenticação, permissões, recuperação de password, auditoria, histórico, lembretes, relatórios, exportações e backups. Também criei testes automatizados, integração contínua com GitHub Actions e um pipeline para gerar o executável Windows. O projeto está documentado e possui um roadmap para evolução e refatoração."
+
+---
 
 ## 👨‍💻 Autor
 
 **Tiago Rogerio Santos Maciel**
 
 Projeto desenvolvido como portefólio para demonstrar evolução prática em programação e preparação para oportunidades profissionais na área de tecnologia.
+
+---
+
+## 📄 Licença
+
+Este projeto está licenciado sob a **MIT License**.
+
+Consulte o arquivo [LICENSE](LICENSE) para obter os termos completos.
