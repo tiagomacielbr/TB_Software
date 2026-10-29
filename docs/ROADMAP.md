@@ -11,19 +11,20 @@
 ## Fase 2 — Arranque e persistência
 
 - [x] Implementar inicialização segura da base de dados quando não existir.
-- [x] Eliminar a criação automática de utilizador/senha padrão e forçar a troca da credencial antiga conhecida `admin/1234`.
-- [x] Pedir criação do primeiro Administrador com credenciais definidas no primeiro arranque.
+- [x] Eliminar a criação automática de utilizador/senha padrão.
+- [x] Pedir criação do primeiro Administrador no primeiro arranque.
 - [x] Persistir nome e slogan da empresa na base de dados.
-- [x] Testar inicialização repetida e persistência em SQLite temporário, sem apagar os registos existentes.
+- [x] Testar inicialização repetida e persistência em SQLite temporário.
 - [ ] Testar migração de uma cópia de base antiga e confirmar que não se perdem dados.
 - [ ] Testar visualmente o diálogo de primeiro Administrador e o login em Windows real.
 
 ## Fase 3 — Testes e fiabilidade
 
-- [ ] Separar funções de dados/validação suficientes para permitir testes sem abrir a interface.
-- [ ] Testar operações CRUD, permissões, exportação, backups e restauro em base temporária.
+- [x] Criar testes automatizados para os principais componentes de segurança e persistência.
+- [x] Validar integridade SQLite em base temporária.
+- [x] Validar criação e verificação de backups.
+- [ ] Aumentar gradualmente a cobertura de CRUD, permissões, exportações e restauro.
 - [ ] Fazer teste manual de regressão no Windows com dados fictícios.
-- [ ] Corrigir os erros encontrados e atualizar a documentação.
 
 ## Fase 4 — Refatoração gradual
 
@@ -31,10 +32,23 @@
 - [ ] Manter testes de regressão em cada alteração.
 - [ ] Uniformizar nomes de funções e comentários, sem alterações visuais não solicitadas.
 
-## Fase 5 — GitHub e candidaturas
+## Fase 5 — GitHub e apresentação profissional
 
-- [ ] Rever segurança e garantir que o histórico Git também não contém dados ou segredos.
-- [ ] Definir licença do código antes de publicar.
-- [ ] Preparar capturas de ecrã usando dados fictícios.
-- [ ] Publicar README e instruções claras de configuração.
-- [ ] Acrescentar o projeto ao CV e preparar uma explicação técnica para entrevistas.
+- [x] Rever o `.gitignore`.
+- [x] Publicar o projeto no GitHub.
+- [x] Utilizar Pull Request para integrar alterações na `main`.
+- [x] Criar README orientado para portefólio.
+- [x] Criar documentação técnica para entrevistas.
+- [x] Adicionar CI com GitHub Actions.
+- [ ] Adicionar capturas de ecrã reais usando apenas dados fictícios.
+- [ ] Decidir se o repositório será público ou continuará privado.
+
+## Próximo passo recomendado
+
+A partir daqui, novas funcionalidades não são obrigatórias para apresentar o projeto. O maior retorno para o portefólio vem de:
+
+1. uma demonstração visual limpa;
+2. capturas de ecrã com dados fictícios;
+3. uma explicação curta da arquitetura;
+4. capacidade de explicar decisões técnicas numa entrevista;
+5. evolução gradual dos testes e da refatoração.
