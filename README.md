@@ -1,64 +1,110 @@
-# TB Software — Gestão de Clientes
+# TB Software — Sistema de Gestão de Clientes
 
-![CI](https://github.com/tiagomacielbr/TB_Software/actions/workflows/ci.yml/badge.svg)
+[![CI](https://github.com/tiagomacielbr/TB_Software/actions/workflows/ci.yml/badge.svg)](https://github.com/tiagomacielbr/TB_Software/actions)
 
-Aplicação desktop de gestão de clientes desenvolvida em **Python**, com **Tkinter/ttk** e **SQLite**.
+Aplicação desktop de **gestão de clientes**, desenvolvida em **Python**, com interface gráfica em **Tkinter/ttk** e persistência local em **SQLite**.
 
-O projeto foi construído como aplicação prática de portefólio, com foco em persistência de dados, autenticação, segurança de passwords, auditoria, backups, exportação de relatórios e testes automatizados.
+O projeto foi desenvolvido como aplicação prática de portefólio, com foco em **gestão de dados, autenticação, segurança de passwords, auditoria, backups, exportação de relatórios, testes automatizados e CI/CD**.
 
-## Visão geral
+## 📌 Sobre o projeto
 
-O TB Software simula um sistema de gestão utilizado por uma pequena empresa para manter clientes, utilizadores, atendimentos, lembretes e configurações locais.
+O TB Software simula uma solução utilizada por uma pequena empresa para centralizar:
 
-### Principais funcionalidades
+- dados de clientes;
+- utilizadores e permissões;
+- histórico de atendimentos;
+- lembretes;
+- relatórios e exportações;
+- backups;
+- configurações da empresa.
 
-- 👥 Cadastro, pesquisa, edição e remoção de clientes
-- 🧾 Suporte a particulares e empresas
-- 🇵🇹 Validação de NIF
-- 🔐 Autenticação de utilizadores, perfis e permissões
-- 🔑 Passwords protegidas com PBKDF2 e salt aleatório
-- ♻️ Recuperação de password por código temporário e de uso único
-- 📝 Histórico de atendimento
-- 🛡️ Sistema de auditoria
-- ⏰ Lembretes e notificações
-- 📊 Relatórios, filtros e exportação
-- 📄 Exportação para CSV, Excel e PDF
-- 💾 Backup e restauração da base SQLite
-- 🎨 Interface gráfica com tema e recursos visuais personalizados
-- 🗄️ Migrações de estrutura da base sem apagar dados existentes
-- 🧪 Testes automatizados com pytest
+O objetivo é demonstrar a capacidade de desenvolver e manter uma aplicação desktop completa, desde a interface e persistência dos dados até testes, versionamento e distribuição.
 
-## Tecnologias
+## 🚀 Principais funcionalidades
+
+### Gestão de clientes
+
+- Cadastro de clientes
+- Pesquisa, edição e remoção
+- Suporte para particulares e empresas
+- Validação de NIF
+
+### Autenticação e segurança
+
+- Login de utilizadores
+- Perfis e permissões
+- Configuração do primeiro Administrador na primeira execução
+- Passwords protegidas com **PBKDF2 + salt aleatório**
+- Recuperação de password por código temporário e de utilização única
+- Compatibilidade com hashes anteriores durante a migração
+
+### Gestão e acompanhamento
+
+- Histórico de atendimentos
+- Sistema de auditoria
+- Lembretes e notificações
+- Configurações persistentes da empresa
+
+### Relatórios e exportação
+
+- Relatórios com filtros
+- Exportação para CSV
+- Exportação para Excel
+- Exportação para PDF
+
+### Base de dados
+
+- SQLite
+- Inicialização automática da estrutura
+- Migrações de schema
+- Integridade referencial
+- Backups e restauração
+- Base de dados local por utilizador
+
+## 🛠️ Tecnologias
 
 | Tecnologia | Utilização |
 |---|---|
-| Python 3 | Linguagem principal |
-| Tkinter / ttk | Interface gráfica desktop |
-| SQLite | Persistência local |
-| hashlib / secrets | Segurança e geração de credenciais |
-| Pillow | Recursos gráficos |
-| openpyxl | Exportação Excel |
-| ReportLab | Geração de PDF |
-| pytest | Testes automatizados |
-| Git / GitHub | Versionamento e colaboração |
+| **Python 3** | Linguagem principal |
+| **Tkinter / ttk** | Interface gráfica desktop |
+| **SQLite** | Persistência local |
+| **hashlib / secrets** | Segurança e geração de credenciais |
+| **Pillow** | Recursos gráficos |
+| **openpyxl** | Exportação para Excel |
+| **ReportLab** | Geração de PDF |
+| **pytest** | Testes automatizados |
+| **Git / GitHub** | Versionamento |
+| **GitHub Actions** | CI/CD |
+| **PyInstaller** | Geração do executável Windows |
 
-## Arquitetura atual
+## 🏗️ Arquitetura atual
 
-A aplicação é atualmente monolítica, com a maior parte da interface e lógica de negócio concentrada em `interface_clientes.py`.
+A aplicação encontra-se atualmente numa arquitetura **monolítica**, com a maior parte da interface e lógica de negócio concentrada em:
 
-A camada SQLite foi centralizada em `banco.py`, responsável por:
+`interface_clientes.py`
 
-- determinar o caminho da base;
-- abrir conexões;
-- configurar `busy_timeout`, foreign keys e sincronização;
-- criar as tabelas base;
-- persistir configurações da empresa.
+O acesso à base de dados está centralizado em:
 
-Os recursos gráficos ficam em `assets/` e a documentação técnica em `docs/`.
+`banco.py`
 
-Mais detalhes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+O módulo `clientes.py` contém funções auxiliares relacionadas com validação e consulta de clientes.
 
-## Estrutura
+Os recursos gráficos encontram-se em:
+
+`assets/`
+
+e a documentação técnica em:
+
+`docs/`
+
+Mais detalhes:
+
+- [Arquitetura](docs/ARCHITECTURE.md)
+- [Revisão técnica](docs/PROJECT_REVIEW.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Guia de apresentação técnica](docs/PORTFOLIO.md)
+
+## 📂 Estrutura do projeto
 
 ```text
 TB_Software/
@@ -72,22 +118,27 @@ TB_Software/
 ├── requirements-dev.txt
 ├── .github/
 │   └── workflows/
-│       └── ci.yml
+│       ├── ci.yml
+│       └── release.yml
 └── .gitignore
 ```
 
-## Instalação no Windows
+## 💻 Instalação no Windows
 
 Abra o PowerShell na pasta do projeto:
 
 ```powershell
+git clone https://github.com/tiagomacielbr/TB_Software.git
+cd TB_Software
+
 py -m venv .venv
-.venv\Scripts\Activate.ps1
+.venv\\Scripts\\Activate.ps1
+
 python -m pip install --upgrade pip
 pip install -r requirements-dev.txt
 ```
 
-Depois execute:
+Execute a aplicação:
 
 ```powershell
 python interface_clientes.py
@@ -95,110 +146,164 @@ python interface_clientes.py
 
 > O projeto foi desenvolvido para Windows. O Tkinter precisa estar disponível na instalação do Python.
 
-## Testes
+## 🧪 Testes automatizados
 
-Para executar a suíte:
+Execute a suíte de testes com:
 
 ```powershell
 python -m pytest tests -q
 ```
 
-Última validação local utilizada nesta versão:
+Última validação local desta versão:
 
 ```text
 9 passed, 3 subtests passed
 ```
 
-O GitHub Actions também executa os testes automaticamente em Windows a cada push ou Pull Request.
+Os testes utilizam bases SQLite temporárias para evitar alterar os dados reais do utilizador.
 
-## Dados e segurança
+A suíte cobre, entre outros pontos:
 
-A base de dados é local e **não faz parte do repositório**.
+- inicialização da base de dados;
+- criação das tabelas;
+- integridade SQLite;
+- hash de passwords;
+- compatibilidade com hash legado;
+- códigos de recuperação;
+- migrações de schema;
+- criação e validação de backups.
 
-- `*.db`, `*.sqlite3` e backups estão no `.gitignore`.
-- Não devem ser adicionados NIFs, contactos, passwords ou históricos reais.
-- A instalação vazia não cria uma password padrão.
-- A aplicação permite configurar o primeiro Administrador.
-- Em modo executável, a base é armazenada no perfil local do utilizador.
+## 🔄 Integração contínua
 
-Para testes automatizados, o caminho da base pode ser controlado por `TB_SOFTWARE_DB_PATH`.
+O projeto utiliza **GitHub Actions** para executar os testes automaticamente.
 
-## Limitações conhecidas
+O workflow de CI:
 
-Este é um projeto de portefólio em evolução. A interface principal ainda concentra bastante código em um único módulo e pode ser refatorada gradualmente.
+1. prepara um ambiente Windows;
+2. instala Python 3.13;
+3. instala as dependências;
+4. executa `pytest`.
 
-Também existem fluxos que merecem testes manuais adicionais no Windows, especialmente:
+O CI é executado em pushes para as branches configuradas e em Pull Requests para `main`.
+
+## 📦 Release Windows
+
+O projeto possui um workflow específico para criação do executável Windows.
+
+Quando uma tag no formato:
+
+`v*`
+
+é publicada, o GitHub Actions:
+
+1. instala as dependências;
+2. executa os testes;
+3. instala PyInstaller;
+4. gera `TB_Software.exe`;
+5. publica o executável na GitHub Release.
+
+A versão de apresentação atual é:
+
+**TB Software v1.0.2**
+
+## 🔐 Dados e segurança
+
+A base de dados é armazenada localmente e **não faz parte do repositório**.
+
+O `.gitignore` evita o versionamento de ficheiros como:
+
+```text
+*.db
+*.sqlite3
+backups
+.venv
+__pycache__
+```
+
+A instalação vazia não cria uma conta `admin` com password conhecida. O primeiro Administrador é configurado pelo utilizador.
+
+Durante demonstrações e entrevistas devem ser utilizados exclusivamente **dados fictícios**.
+
+Para testes automatizados, o caminho da base pode ser controlado pela variável:
+
+`TB_SOFTWARE_DB_PATH`
+
+## ⚠️ Limitações conhecidas
+
+O TB Software é uma versão funcional de portefólio em evolução.
+
+A interface principal ainda concentra bastante código em `interface_clientes.py`, sendo possível realizar uma refatoração gradual para separar responsabilidades.
+
+Também existem fluxos que merecem testes manuais adicionais no Windows:
 
 - primeira execução;
 - login e permissões;
 - exportações;
 - backups e restauração;
-- utilização com uma base antiga.
+- migração de uma base de dados antiga.
 
-Essas limitações estão documentadas em [docs/PROJECT_REVIEW.md](docs/PROJECT_REVIEW.md).
+Além disso:
 
-## Documentação do projeto
+- SQLite e os backups não estão encriptados em repouso;
+- a licença do repositório ainda não foi definida;
+- a cobertura de testes de ponta a ponta ainda pode ser ampliada.
 
-- [Arquitetura](docs/ARCHITECTURE.md)
-- [Revisão técnica](docs/PROJECT_REVIEW.md)
-- [Roadmap](docs/ROADMAP.md)
-- [Apresentação técnica para entrevistas](docs/PORTFOLIO.md)
+Esses pontos estão documentados em [Revisão técnica](docs/PROJECT_REVIEW.md) e no [Roadmap](docs/ROADMAP.md).
 
-## Objetivo de portefólio
+## 🗺️ Roadmap
 
-Este projeto demonstra competências práticas em:
+Próximas melhorias previstas:
 
-- desenvolvimento de aplicações desktop;
-- Python e programação estruturada;
-- SQL e SQLite;
-- autenticação e segurança básica;
-- manipulação de ficheiros;
-- tratamento de erros;
-- testes automatizados;
-- Git e GitHub;
-- documentação técnica;
-- manutenção e evolução incremental de software.
+- aumentar a cobertura de testes;
+- testar fluxos completos de CRUD;
+- testar permissões e exportações;
+- testar restauração de backups;
+- realizar testes de regressão no Windows;
+- refatorar gradualmente `interface_clientes.py`;
+- separar acesso a dados, validação, exportação e interface;
+- adicionar capturas de ecrã reais utilizando apenas dados fictícios;
+- decidir a licença do projeto.
 
+A estratégia é evoluir através de alterações pequenas e testadas, reduzindo o risco de regressões.
 
+## 🎯 Objetivo de portefólio
 
-## Demonstração
+O TB Software foi desenvolvido para demonstrar competências práticas em:
 
-O projeto foi pensado para ser apresentado como uma aplicação desktop completa, e não apenas como um exercício de Python.
+- **Python**
+- **SQL / SQLite**
+- **Tkinter**
+- **Autenticação e segurança**
+- **Manipulação de ficheiros**
+- **Tratamento de erros**
+- **Testes automatizados**
+- **Git / GitHub**
+- **GitHub Actions / CI/CD**
+- **Documentação técnica**
+- **Manutenção e evolução incremental de software**
 
-Fluxo recomendado para uma demonstração:
+O objetivo não é demonstrar apenas conhecimento de sintaxe Python, mas capacidade de trabalhar com um software real em evolução.
 
-1. Abrir a aplicação e autenticar.
-2. Mostrar o dashboard.
-3. Criar um cliente fictício.
-4. Pesquisar e alterar o cliente.
-5. Mostrar histórico de atendimento e auditoria.
-6. Mostrar relatórios/exportações.
-7. Mostrar backup e restauração.
-8. Explicar os testes automatizados e o CI no GitHub.
+## 🎥 Demonstração
+
+Fluxo recomendado para apresentar o projeto:
+
+1. Abrir a aplicação.
+2. Demonstrar a autenticação.
+3. Mostrar o dashboard.
+4. Criar um cliente fictício.
+5. Pesquisar e editar o cliente.
+6. Mostrar histórico e auditoria.
+7. Demonstrar um lembrete.
+8. Mostrar uma exportação.
+9. Demonstrar backup/restauração.
+10. Apresentar os testes automatizados.
+11. Mostrar o GitHub Actions.
 
 > **Importante:** utilizar apenas dados fictícios durante demonstrações e entrevistas.
 
-## Executável Windows
-
-O repositório possui um workflow de release em `.github/workflows/release.yml`. Quando uma tag no formato `v*` for publicada, o GitHub Actions:
-
-- instala as dependências;
-- executa os testes;
-- gera o executável Windows com PyInstaller;
-- publica o `TB_Software.exe` como artefacto da Release.
-
-Assim, a versão de apresentação pode ser distribuída sem exigir uma instalação manual do ambiente Python.
-
-## Projeto de portefólio
-
-O objetivo deste projeto é demonstrar competências práticas em:
-
-**Python + Tkinter + SQLite + SQL + segurança + testes + Git/GitHub + CI/CD + documentação.**
-
-A aplicação continua com um roadmap de evolução. A arquitetura monolítica pode ser refatorada gradualmente, mantendo testes de regressão para reduzir o risco de alterações.
-
-## Autor
+## 👨‍💻 Autor
 
 **Tiago Rogerio Santos Maciel**
 
-Projeto desenvolvido para demonstrar evolução prática em programação e preparação para oportunidades profissionais na área de tecnologia.
+Projeto desenvolvido como portefólio para demonstrar evolução prática em programação e preparação para oportunidades profissionais na área de tecnologia.
