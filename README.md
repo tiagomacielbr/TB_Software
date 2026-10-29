@@ -159,6 +159,44 @@ Este projeto demonstra competências práticas em:
 - documentação técnica;
 - manutenção e evolução incremental de software.
 
+
+
+## Demonstração
+
+O projeto foi pensado para ser apresentado como uma aplicação desktop completa, e não apenas como um exercício de Python.
+
+Fluxo recomendado para uma demonstração:
+
+1. Abrir a aplicação e autenticar.
+2. Mostrar o dashboard.
+3. Criar um cliente fictício.
+4. Pesquisar e alterar o cliente.
+5. Mostrar histórico de atendimento e auditoria.
+6. Mostrar relatórios/exportações.
+7. Mostrar backup e restauração.
+8. Explicar os testes automatizados e o CI no GitHub.
+
+> **Importante:** utilizar apenas dados fictícios durante demonstrações e entrevistas.
+
+## Executável Windows
+
+O repositório possui um workflow de release em `.github/workflows/release.yml`. Quando uma tag no formato `v*` for publicada, o GitHub Actions:
+
+- instala as dependências;
+- executa os testes;
+- gera o executável Windows com PyInstaller;
+- publica o `TB_Software.exe` como artefacto da Release.
+
+Assim, a versão de apresentação pode ser distribuída sem exigir uma instalação manual do ambiente Python.
+
+## Projeto de portefólio
+
+O objetivo deste projeto é demonstrar competências práticas em:
+
+**Python + Tkinter + SQLite + SQL + segurança + testes + Git/GitHub + CI/CD + documentação.**
+
+A aplicação continua com um roadmap de evolução. A arquitetura monolítica pode ser refatorada gradualmente, mantendo testes de regressão para reduzir o risco de alterações.
+
 ## Autor
 
 **Tiago Rogerio Santos Maciel**
