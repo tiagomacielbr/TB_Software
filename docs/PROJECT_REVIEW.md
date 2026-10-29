@@ -1,33 +1,53 @@
-# Notas da revisão inicial
+# Notas da revisão técnica
+
+## Estado atual
+
+O TB Software encontra-se numa versão funcional de portefólio, com documentação, testes automatizados, CI, pipeline de release Windows e licença MIT.
 
 ## O que foi preservado
 
-- O ficheiro de aplicação `interface_clientes.py` escolhido como base.
+- O ficheiro de aplicação `interface_clientes.py`.
 - Os módulos auxiliares `banco.py` e `clientes.py`.
-- Os recursos gráficos ativos: logótipo, imagens do dashboard e ícones do menu lateral.
-- As funcionalidades que já estão implementadas no código original.
+- Os recursos gráficos ativos em `assets/`.
+- As funcionalidades já implementadas na aplicação.
 
-## Alterações desta primeira fase
+## Organização atual
 
-- Criada uma cópia de trabalho organizada, sem ambiente virtual, base de dados local, cópias de segurança, cache de Python ou configuração privada do IDE.
-- Os recursos gráficos foram colocados em `assets/` e foram atualizados apenas os caminhos de carregamento na cópia de trabalho. Os recursos gráficos usam a estrutura organizada em assets/.
-- Removido do caminho de pesquisa de imagens o caminho absoluto de desenvolvimento `/mnt/data/TB_Software_5_2_assets`.
-- Acrescentados README, documentação inicial, dependências declaradas, `.gitignore` e testes básicos.
-
-## Problemas conhecidos que ainda precisam de atenção
-
-1. **Validação da interface:** os testes automatizados não substituem um teste manual em Windows com base de dados de teste.
-2. **Operações de ponta a ponta:** criar/editar/excluir clientes, permissões, relatórios, exportações, lembretes, backups e restauro ainda precisam de testes de regressão dedicados.
-3. **Licenciamento offline:** a variante de licenciamento não foi integrada nesta cópia de portefólio; a licença offline é uma preocupação separada e não deve acrescentar chaves privadas ao repositório.
-4. **Proteção de dados em repouso:** SQLite e backups não estão encriptados. O `.gitignore` evita parte das publicações acidentais, mas não protege ficheiros roubados do computador.
-5. **Licença do repositório:** ainda é necessário decidir se o código será publicado com uma licença de código aberto ou com todos os direitos reservados.
+- Código principal separado dos recursos gráficos.
+- Documentação técnica concentrada em `docs/`.
+- Testes automatizados em `tests/`.
+- Dependências declaradas em `requirements.txt` e `requirements-dev.txt`.
+- Dados locais, backups, ambientes virtuais e ficheiros privados excluídos pelo `.gitignore`.
 
 ## Verificações efetuadas
 
 - Compilação sintática do código ativo e dos módulos auxiliares.
-- Testes unitários da validação de NIF com entradas sintéticas.
-- Testes de inicialização segura: criação de tabelas sem utilizadores padrão, inicialização repetida preservando registos e persistência do nome/slogan.
-- Verificação da existência dos recursos gráficos referenciados.
-- Verificação do ZIP final para confirmar que não contém ficheiros de base de dados, backups, `.venv`, `.idea`, `__pycache__` nem chaves privadas.
+- Testes unitários da validação de NIF.
+- Testes de inicialização segura.
+- Testes de persistência em SQLite temporário.
+- Verificação de integridade SQLite.
+- Verificação de recursos gráficos.
+- Verificação do pacote de trabalho para evitar publicação de dados locais e ficheiros privados.
+- Pipeline de CI configurado no GitHub Actions.
+- Pipeline de release Windows com testes antes da criação do executável.
+- Release `v1.0.2` publicada com sucesso.
 
-A interface gráfica não foi iniciada nesta revisão. A inicialização de banco vazia foi testada com SQLite temporário, mas o diálogo Tkinter de primeira execução e a aplicação completa ainda precisam de validação no Windows.
+## Pontos de atenção
+
+1. **Validação da interface:** os testes automatizados não substituem uma regressão manual completa no Windows.
+2. **Operações de ponta a ponta:** CRUD, permissões, relatórios, exportações, lembretes, backups e restauração podem receber testes dedicados.
+3. **Proteção de dados em repouso:** SQLite e backups continuam a ser ficheiros locais e não são encriptados em repouso.
+4. **Arquitetura:** `interface_clientes.py` ainda concentra muitas responsabilidades e pode ser refatorado gradualmente.
+5. **Screenshots:** devem utilizar apenas dados fictícios antes de serem publicados no README.
+
+## Estratégia de evolução
+
+A próxima etapa deve privilegiar alterações pequenas e testadas:
+
+1. adicionar um teste;
+2. extrair uma responsabilidade;
+3. executar a suíte;
+4. validar manualmente no Windows quando necessário;
+5. integrar a alteração na branch `main`.
+
+A prioridade é reduzir regressões enquanto o projeto evolui.
