@@ -50,3 +50,5 @@ dist/
 licencas_geradas/
 licenses_generated/
 licensing_private/
+*.pyc
+auditoria/

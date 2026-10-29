@@ -45,9 +45,8 @@ def inicializar_banco():
     conexao = None
     try:
         conexao = sqlite3.connect(str(caminho), timeout=10)
+        _configurar_conexao(conexao)
         cursor = conexao.cursor()
-        cursor.execute("PRAGMA busy_timeout = 10000")
-        cursor.execute("PRAGMA foreign_keys = ON")
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS clientes (
@@ -95,14 +94,22 @@ def criar_banco():
     return inicializar_banco()
 
 
+def _configurar_conexao(conexao):
+    """Aplica opções seguras e previsíveis a cada ligação SQLite."""
+    conexao.execute("PRAGMA busy_timeout = 10000")
+    conexao.execute("PRAGMA foreign_keys = ON")
+    # Não ativamos WAL: em desenvolvimento a base pode estar dentro do OneDrive,
+    # e o modo WAL cria ficheiros auxiliares que podem ser sincronizados separadamente.
+    conexao.execute("PRAGMA synchronous = NORMAL")
+
+
 def conectar_banco():
     """Abre a base de dados configurada; não cria utilizadores automaticamente."""
     try:
         caminho = obter_caminho_banco()
         caminho.parent.mkdir(parents=True, exist_ok=True)
         conexao = sqlite3.connect(str(caminho), timeout=10)
-        conexao.execute("PRAGMA busy_timeout = 10000")
-        conexao.execute("PRAGMA foreign_keys = ON")
+        _configurar_conexao(conexao)
         return conexao, conexao.cursor()
     except sqlite3.Error as erro:
         print(f"Erro ao conectar ao banco de dados: {erro}")
