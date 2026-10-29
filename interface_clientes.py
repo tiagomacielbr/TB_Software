@@ -35,6 +35,10 @@ _JANELAS_ABERTAS = {}
 ATUALIZAR_DASHBOARD_CALLBACK = None
 USUARIO_AUDITORIA_ATUAL = None
 PBKDF2_ITERACOES = 260_000
+MIN_SENHA = 10
+RECUPERACAO_VALIDADE_MINUTOS = 30
+MAX_BACKUPS_AUTOMATICOS = 30
+MAX_BACKUPS_PRE_RESTAURO = 30
 
 # Ícones usados no menu lateral.
 # Os ficheiros ficam em assets/icones_menu.
@@ -75,6 +79,17 @@ def gerar_codigo_recuperacao():
     return "-".join(partes)
 
 
+def codigo_recuperacao_expirado(criado_em):
+    """Indica se um código de recuperação ultrapassou a validade configurada."""
+    if not criado_em:
+        return True
+    try:
+        criado = datetime.fromisoformat(str(criado_em))
+    except (TypeError, ValueError):
+        return True
+    return datetime.now() - criado > timedelta(minutes=RECUPERACAO_VALIDADE_MINUTOS)
+
+
 def garantir_campos_recuperacao():
     """Adiciona os campos de recuperação a bases existentes sem apagar dados."""
     con = None
@@ -101,7 +116,6 @@ def garantir_campos_recuperacao():
 def configurar_codigo_recuperacao(usuario_logado, parent):
     """Permite ao utilizador autenticado criar um novo código de recuperação."""
     janela = tk.Toplevel(parent)
-    aplicar_icone_janela(janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Código de recuperação")
     janela.geometry("480x430")
@@ -171,7 +185,6 @@ def configurar_codigo_recuperacao(usuario_logado, parent):
 def mostrar_codigo_recuperacao(parent, codigo):
     """Mostra o código uma vez e permite copiá-lo para a área de transferência."""
     janela = tk.Toplevel(parent)
-    aplicar_icone_janela(janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Código de recuperação")
     janela.geometry("480x300")
@@ -207,7 +220,6 @@ def mostrar_codigo_recuperacao(parent, codigo):
 def recuperar_senha(parent):
     """Redefine a senha usando um código de recuperação de uso único."""
     janela = tk.Toplevel(parent)
-    aplicar_icone_janela(janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Recuperar senha")
     janela.geometry("480x520")
@@ -241,7 +253,7 @@ def recuperar_senha(parent):
             messagebox.showerror("Recuperação", "Preencha todos os campos.", parent=janela)
             return
         if len(nova) < 10:
-            messagebox.showerror("Recuperação", "A nova senha deve ter pelo menos 10 caracteres.", parent=janela)
+            messagebox.showerror("Recuperação", f"A nova senha deve ter pelo menos {MIN_SENHA} caracteres.", parent=janela)
             return
         if nova != conf:
             messagebox.showerror("Recuperação", "As novas senhas não coincidem.", parent=janela)
@@ -249,15 +261,22 @@ def recuperar_senha(parent):
         con = None
         try:
             con, cur = conectar_banco()
-            cur.execute("SELECT codigo_recuperacao, COALESCE(ativo, 1) FROM usuarios WHERE usuario = ?", (usuario,))
+            cur.execute("SELECT codigo_recuperacao, codigo_recuperacao_criado_em, COALESCE(ativo, 1) FROM usuarios WHERE usuario = ?", (usuario,))
             linha = cur.fetchone()
-            if not linha or not linha[0] or int(linha[1] or 0) != 1:
+            if not linha or not linha[0] or int(linha[2] or 0) != 1:
                 raise RuntimeError("Utilizador ou código de recuperação inválido.")
+            if codigo_recuperacao_expirado(linha[1]):
+                cur.execute("UPDATE usuarios SET codigo_recuperacao = NULL, codigo_recuperacao_criado_em = NULL WHERE usuario = ?", (usuario,))
+                con.commit()
+                raise RuntimeError("Utilizador ou código de recuperação inválido ou expirado.")
             valido, _ = verificar_hash_senha(codigo, linha[0])
             if not valido:
                 raise RuntimeError("Utilizador ou código de recuperação inválido.")
             cur.execute("UPDATE usuarios SET senha = ?, codigo_recuperacao = NULL, codigo_recuperacao_criado_em = NULL WHERE usuario = ?",
                         (criar_hash_senha(nova), usuario))
+            _inserir_auditoria(cur, "Senha redefinida por recuperação",
+                               detalhes=f"Código de recuperação utilizado; validade: {RECUPERACAO_VALIDADE_MINUTOS} minutos",
+                               usuario=usuario)
             con.commit()
         except (sqlite3.Error, RuntimeError) as erro:
             if con:
@@ -597,7 +616,17 @@ def criar_backup_automatico(rotulo="automatico"):
             key=lambda item: item.stat().st_mtime,
             reverse=True
         )
-        for antigo in backups[30:]:
+        for antigo in backups[MAX_BACKUPS_AUTOMATICOS:]:
+            try:
+                antigo.unlink()
+            except OSError:
+                pass
+        pre_restauros = sorted(
+            diretorio.glob("backup_pre_restauro_*.sqlite3"),
+            key=lambda item: item.stat().st_mtime,
+            reverse=True
+        )
+        for antigo in pre_restauros[MAX_BACKUPS_PRE_RESTAURO:]:
             try:
                 antigo.unlink()
             except OSError:
@@ -650,6 +679,16 @@ def restaurar_backup(caminho_backup):
     diretorio.mkdir(parents=True, exist_ok=True)
     pre_restauro = diretorio / f"backup_pre_restauro_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}.sqlite3"
     _executar_backup_para(pre_restauro)
+    pre_restauros = sorted(
+        diretorio.glob("backup_pre_restauro_*.sqlite3"),
+        key=lambda item: item.stat().st_mtime,
+        reverse=True
+    )
+    for antigo in pre_restauros[MAX_BACKUPS_PRE_RESTAURO:]:
+        try:
+            antigo.unlink()
+        except OSError:
+            pass
 
     fonte = None
     destino = None
@@ -1013,8 +1052,39 @@ def aplicar_tema_janela(janela):
                     pass
 
 
+def aplicar_icone_janela(janela):
+    """Aplica o ícone oficial TB Software a qualquer janela Tkinter."""
+    try:
+        if not janela.winfo_exists():
+            return
+        bases = [Path(__file__).resolve().parent]
+        if getattr(sys, "frozen", False):
+            meipass = getattr(sys, "_MEIPASS", None)
+            if meipass:
+                bases.append(Path(meipass))
+            bases.append(Path(sys.executable).resolve().parent)
+        vistos = set()
+        candidatos = []
+        for base in bases:
+            base = base.resolve()
+            if base in vistos:
+                continue
+            vistos.add(base)
+            candidatos.extend((
+                base / "assets" / "TB_Software.ico",
+                base / "TB_Software.ico",
+            ))
+        for caminho in candidatos:
+            if caminho.is_file():
+                janela.iconbitmap(default=str(caminho))
+                return
+    except (OSError, RuntimeError, tk.TclError, TypeError):
+        pass
+
+
 def registrar_tema_janela(janela):
-    """Aplica o tema quando a janela e os seus widgets já estiverem construídos."""
+    """Aplica tema e identidade visual quando a janela é criada."""
+    aplicar_icone_janela(janela)
     try:
         janela.bind(
             "<Map>",
@@ -1066,19 +1136,6 @@ def obter_tema_usuario(usuario):
 #   60 = maior
 #   72 = tamanho original dos PNGs enviados
 TAMANHO_ICONE = 50
-
-
-def aplicar_icone_janela(janela):
-    """Aplica o ícone padrão TB Software a qualquer janela Tkinter."""
-    try:
-        pasta_programa = Path(__file__).resolve().parent
-        icone_path = pasta_programa / "assets" / "TB_Software.ico"
-        if icone_path.exists():
-            janela.iconbitmap(str(icone_path))
-    except Exception:
-        # O ícone é apenas visual; falhar aqui não deve impedir a aplicação de abrir.
-        pass
-
 
 # ============================================================
 #                     TAMANHO DO LOGO
@@ -1605,7 +1662,6 @@ def autenticar_autorizador(usuario, senha):
 def solicitar_autorizacao(parent, acao):
     """Abre a janela de autorização para ações administrativas."""
     janela = tk.Toplevel(parent)
-    aplicar_icone_janela(janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Autorização")
     janela.geometry("500x390")
@@ -1662,7 +1718,7 @@ def solicitar_autorizacao(parent, acao):
               cursor="hand2", bd=0).grid(row=4, column=0, sticky="e", padx=16, pady=(0, 10))
     quadro.columnconfigure(0, weight=1)
 
-    resultado = {"autorizado": False, "perfil": None}
+    resultado = {"autorizado": False, "perfil": None, "usuario": None}
 
     def confirmar():
         usuario = entrada_usuario.get().strip()
@@ -1681,6 +1737,7 @@ def solicitar_autorizacao(parent, acao):
 
         resultado["autorizado"] = True
         resultado["perfil"] = perfil
+        resultado["usuario"] = usuario
         janela.destroy()
 
     botoes = tk.Frame(janela, bg=COR_FUNDO)
@@ -1754,12 +1811,14 @@ def verificar_login():
         usuario_encontrado = cursor.fetchone()
 
         if not usuario_encontrado:
+            registar_auditoria("Falha de login", detalhes="Utilizador inexistente ou credenciais inválidas", usuario=usuario or "(vazio)")
             messagebox.showerror("Erro", "Utilizador ou senha incorretos!", parent=janela_login)
             return
 
         perfil, ativo, tema, hash_guardado = usuario_encontrado
         senha_ok, hash_legado = verificar_hash_senha(senha, hash_guardado)
         if not senha_ok:
+            registar_auditoria("Falha de login", detalhes="Credenciais inválidas", usuario=usuario)
             messagebox.showerror("Erro", "Utilizador ou senha incorretos!", parent=janela_login)
             entrada_senha.delete(0, tk.END)
             entrada_senha.focus_set()
@@ -1824,8 +1883,6 @@ def abrir_historico_atendimento_cliente(parent, cliente_id, cliente_nome):
         return existente
 
     janela = tk.Toplevel(parent)
-
-    aplicar_icone_janela(janela)
     registar_janela_aberta(chave, janela)
     registrar_tema_janela(janela)
     janela.title(f"TB Software - Atendimento: {cliente_nome}")
@@ -1884,7 +1941,6 @@ def abrir_historico_atendimento_cliente(parent, cliente_id, cliente_nome):
 
     def novo_registo():
         editor = tk.Toplevel(janela)
-        aplicar_icone_janela(editor)
         registrar_tema_janela(editor)
         editor.title("Novo registo de atendimento")
         editor.geometry("520x430")
@@ -2164,7 +2220,6 @@ def mostrar_aviso_lembretes(parent, usuario_logado, itens, resumo_inicio=False):
     existente = focar_janela_aberta("aviso_lembretes")
     if existente is None:
         janela = tk.Toplevel(parent)
-        aplicar_icone_janela(janela)
         registar_janela_aberta("aviso_lembretes", janela)
         registrar_tema_janela(janela)
         janela.title("TB Software - Lembretes" if not resumo_inicio else "TB Software - Lembretes de hoje")
@@ -2339,8 +2394,6 @@ def abrir_lembretes(parent, usuario_logado):
         return existente
 
     janela = tk.Toplevel(parent)
-
-    aplicar_icone_janela(janela)
     registar_janela_aberta("lembretes_clientes", janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Lembretes e tarefas")
@@ -2470,8 +2523,6 @@ def abrir_lembretes(parent, usuario_logado):
             return
 
         editor = tk.Toplevel(janela)
-
-        aplicar_icone_janela(editor)
         registrar_tema_janela(editor)
         editor.title("Novo lembrete")
         editor.geometry("540x510")
@@ -2632,8 +2683,6 @@ def abrir_relatorios(parent):
         return existente
 
     janela = tk.Toplevel(parent)
-
-    aplicar_icone_janela(janela)
     registar_janela_aberta("relatorios", janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Relatórios")
@@ -3215,8 +3264,6 @@ def abrir_dialogo_imprimir_cliente(parent, cliente):
         return
 
     janela = tk.Toplevel(parent)
-
-    aplicar_icone_janela(janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Imprimir Cliente")
     janela.geometry("480x320")
@@ -3399,8 +3446,6 @@ def abrir_historico_auditoria(parent, usuario_logado):
         return existente
 
     janela = tk.Toplevel(parent)
-
-    aplicar_icone_janela(janela)
     registar_janela_aberta("historico_auditoria", janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Histórico de Alterações")
@@ -3476,7 +3521,6 @@ def abrir_dados_seguranca(parent, usuario_logado):
     if existente is not None:
         return existente
     janela = tk.Toplevel(parent)
-    aplicar_icone_janela(janela)
     registar_janela_aberta("dados_seguranca", janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Dados e Segurança")
@@ -3625,8 +3669,6 @@ def abrir_utilizadores(parent, usuario_logado):
         return existente
 
     janela = tk.Toplevel(parent)
-
-    aplicar_icone_janela(janela)
     registar_janela_aberta("utilizadores", janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Utilizadores")
@@ -3754,8 +3796,6 @@ def abrir_utilizadores(parent, usuario_logado):
             return
 
         editor = tk.Toplevel(janela)
-
-        aplicar_icone_janela(editor)
         registrar_tema_janela(editor)
         editor.title("TB Software - Alterar Utilizador")
         editor.geometry("470x400")
@@ -3849,6 +3889,22 @@ def abrir_utilizadores(parent, usuario_logado):
             confirmar_senha = entrada_confirmar.get()
             novo_perfil = perfil_var.get().strip() or perfil_atual
 
+            if usuario_alvo.casefold() == usuario_logado.casefold() and novo_nome.casefold() != usuario_alvo.casefold():
+                messagebox.showerror(
+                    "Operação não permitida",
+                    "Não é possível alterar o nome da conta que está atualmente em uso.",
+                    parent=editor
+                )
+                return
+
+            if usuario_alvo.casefold() == usuario_logado.casefold() and novo_perfil.casefold() != perfil_atual.casefold():
+                messagebox.showerror(
+                    "Operação não permitida",
+                    "Não é possível alterar o próprio perfil durante a sessão atual.",
+                    parent=editor
+                )
+                return
+
             if not novo_nome:
                 messagebox.showerror(
                     "Erro",
@@ -3881,10 +3937,10 @@ def abrir_utilizadores(parent, usuario_logado):
                 )
                 return
 
-            if nova_senha and len(nova_senha) < 6:
+            if nova_senha and len(nova_senha) < MIN_SENHA:
                 messagebox.showerror(
                     "Erro",
-                    "A nova senha deve ter pelo menos 6 caracteres.",
+                    f"A nova senha deve ter pelo menos {MIN_SENHA} caracteres.",
                     parent=editor
                 )
                 return
@@ -3896,11 +3952,20 @@ def abrir_utilizadores(parent, usuario_logado):
             con = None
             try:
                 con, cur = conectar_banco()
+                if con is None:
+                    raise sqlite3.OperationalError("Não foi possível conectar ao banco de dados.")
+
+                if str(perfil_atual).casefold() == "administrador" and str(novo_perfil).casefold() != "administrador":
+                    cur.execute("SELECT COUNT(*) FROM usuarios WHERE LOWER(COALESCE(perfil, 'Utilizador')) = 'administrador' AND COALESCE(ativo, 1) = 1")
+                    if int(cur.fetchone()[0] or 0) <= 1:
+                        raise RuntimeError("Não é possível retirar o último Administrador ativo do sistema.")
 
                 if senha_hash:
                     cur.execute("""
                         UPDATE usuarios
-                        SET usuario = ?, senha = ?, perfil = ?
+                        SET usuario = ?, senha = ?, perfil = ?,
+                            codigo_recuperacao = NULL,
+                            codigo_recuperacao_criado_em = NULL
                         WHERE usuario = ?
                     """, (novo_nome, senha_hash, novo_perfil, usuario_alvo))
                 else:
@@ -3911,7 +3976,8 @@ def abrir_utilizadores(parent, usuario_logado):
                     """, (novo_nome, novo_perfil, usuario_alvo))
 
                 _inserir_auditoria(
-                    cur, "Utilizador alterado", detalhes=f"Conta '{usuario_alvo}' atualizada"
+                    cur, "Utilizador alterado",
+                    detalhes=f"Conta '{usuario_alvo}' atualizada; autorizado por: {autorizacao.get('usuario') or 'Administrador'}"
                 )
                 con.commit()
 
@@ -3988,8 +4054,6 @@ def abrir_utilizadores(parent, usuario_logado):
         perfil_autorizador = autorizacao["perfil"]
 
         editor = tk.Toplevel(janela)
-
-        aplicar_icone_janela(editor)
         registrar_tema_janela(editor)
         editor.title("TB Software - Novo Utilizador")
         editor.geometry("470x410")
@@ -4070,10 +4134,10 @@ def abrir_utilizadores(parent, usuario_logado):
             confirmar = entrada_confirmar_senha.get()
             perfil = perfil_novo_var.get().strip()
 
-            if not nome:
+            if not nome or any(ch.isspace() for ch in nome) or not (2 <= len(nome) <= 50):
                 messagebox.showerror(
                     "Novo Utilizador",
-                    "Digite o nome do utilizador.",
+                    "O utilizador deve ter entre 2 e 50 caracteres e não pode conter espaços.",
                     parent=editor
                 )
                 entrada_novo_usuario.focus_set()
@@ -4088,10 +4152,10 @@ def abrir_utilizadores(parent, usuario_logado):
                 entrada_nova_senha.focus_set()
                 return
 
-            if len(senha) < 6:
+            if len(senha) < MIN_SENHA:
                 messagebox.showerror(
                     "Novo Utilizador",
-                    "A senha deve ter pelo menos 6 caracteres.",
+                    f"A senha deve ter pelo menos {MIN_SENHA} caracteres.",
                     parent=editor
                 )
                 entrada_nova_senha.focus_set()
@@ -4127,11 +4191,17 @@ def abrir_utilizadores(parent, usuario_logado):
                     )
                     return
 
+                cur.execute("SELECT 1 FROM usuarios WHERE LOWER(usuario) = LOWER(?) LIMIT 1", (nome,))
+                if cur.fetchone() is not None:
+                    raise sqlite3.IntegrityError("utilizador duplicado")
                 cur.execute(
-                    "INSERT INTO usuarios (usuario, senha, perfil) VALUES (?, ?, ?)",
+                    "INSERT INTO usuarios (usuario, senha, perfil, ativo, tema) VALUES (?, ?, ?, 1, 'Claro')",
                     (nome, senha_hash, perfil)
                 )
-                _inserir_auditoria(cur, "Utilizador criado", detalhes=f"Conta '{nome}' criada com perfil {perfil}")
+                _inserir_auditoria(
+                    cur, "Utilizador criado",
+                    detalhes=f"Conta '{nome}' criada com perfil {perfil}; autorizado por: {autorizacao.get('usuario') or 'Administrador'}"
+                )
                 con.commit()
 
                 messagebox.showinfo(
@@ -4238,6 +4308,12 @@ def abrir_utilizadores(parent, usuario_logado):
         con = None
         try:
             con, cur = conectar_banco()
+            if con is None:
+                raise sqlite3.OperationalError("Não foi possível conectar ao banco de dados.")
+            if novo_ativo == 0 and str(perfil_alvo).casefold() == "administrador":
+                cur.execute("SELECT COUNT(*) FROM usuarios WHERE LOWER(COALESCE(perfil, 'Utilizador')) = 'administrador' AND COALESCE(ativo, 1) = 1")
+                if int(cur.fetchone()[0] or 0) <= 1:
+                    raise RuntimeError("Não é possível bloquear o último Administrador ativo do sistema.")
             cur.execute(
                 "UPDATE usuarios SET ativo = ? WHERE usuario = ? AND LOWER(usuario) <> 'admin'",
                 (novo_ativo, usuario_alvo)
@@ -4248,7 +4324,7 @@ def abrir_utilizadores(parent, usuario_logado):
                 return
             _inserir_auditoria(
                 cur, "Conta bloqueada" if novo_ativo == 0 else "Conta desbloqueada",
-                detalhes=f"Estado alterado para { 'Ativo' if novo_ativo else 'Bloqueado' }: {usuario_alvo}"
+                detalhes=f"Estado alterado para { 'Ativo' if novo_ativo else 'Bloqueado' }: {usuario_alvo}; autorizado por: {autorizacao.get('usuario') or 'Administrador'}"
             )
             con.commit()
             estado_novo = "desbloqueada" if novo_ativo else "bloqueada"
@@ -4258,7 +4334,7 @@ def abrir_utilizadores(parent, usuario_logado):
                 parent=janela
             )
             carregar_utilizadores()
-        except sqlite3.Error as erro:
+        except (sqlite3.Error, RuntimeError) as erro:
             if con:
                 con.rollback()
             messagebox.showerror("Erro", f"Não foi possível alterar a conta:\n{erro}", parent=janela)
@@ -4358,44 +4434,12 @@ def abrir_utilizadores(parent, usuario_logado):
 
 
 
-def atualizar_identidade_empresa_na_interface(parent, nome_anterior, slogan_anterior):
-    """Atualiza imediatamente os textos da identidade na janela principal."""
-    def percorrer(widget):
-        try:
-            if isinstance(widget, tk.Label):
-                texto = str(widget.cget("text"))
-
-                if texto == nome_anterior:
-                    widget.config(text=NOME_EMPRESA)
-                elif texto == slogan_anterior:
-                    widget.config(text=SLOGAN_EMPRESA)
-                elif texto == f"{nome_anterior}  •  {slogan_anterior}":
-                    widget.config(text=f"{NOME_EMPRESA}  •  {SLOGAN_EMPRESA}")
-                elif texto == f"{nome_anterior} | {slogan_anterior}":
-                    widget.config(text=f"{NOME_EMPRESA} | {SLOGAN_EMPRESA}")
-        except (tk.TclError, AttributeError):
-            pass
-
-        try:
-            for filho in widget.winfo_children():
-                percorrer(filho)
-        except (tk.TclError, AttributeError):
-            pass
-
-    try:
-        percorrer(parent)
-    except (tk.TclError, AttributeError):
-        pass
-
-
 def abrir_configuracoes(parent, usuario_logado):
     existente = focar_janela_aberta("configuracoes")
     if existente is not None:
         return existente
 
     janela = tk.Toplevel(parent)
-
-    aplicar_icone_janela(janela)
     registar_janela_aberta("configuracoes", janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Configurações")
@@ -4490,9 +4534,6 @@ def abrir_configuracoes(parent, usuario_logado):
         novo_nome = nome_var.get().strip()
         novo_slogan = slogan_var.get().strip()
 
-        nome_anterior = NOME_EMPRESA
-        slogan_anterior = SLOGAN_EMPRESA
-
         if e_administrador and (not novo_nome or not novo_slogan):
             messagebox.showerror(
                 "Configurações",
@@ -4513,6 +4554,9 @@ def abrir_configuracoes(parent, usuario_logado):
             if e_administrador:
                 guardar_configuracoes_empresa(novo_nome, novo_slogan, cursor=cur)
 
+                NOME_EMPRESA = novo_nome
+                SLOGAN_EMPRESA = novo_slogan
+
             con.commit()
         except sqlite3.Error as erro:
             if con:
@@ -4530,11 +4574,6 @@ def abrir_configuracoes(parent, usuario_logado):
         if e_administrador:
             NOME_EMPRESA = novo_nome
             SLOGAN_EMPRESA = novo_slogan
-            atualizar_identidade_empresa_na_interface(
-                parent,
-                nome_anterior,
-                slogan_anterior
-            )
 
         definir_tema(tema_selecionado, root=getattr(tk, "_default_root", parent))
         janela.destroy()
@@ -4563,7 +4602,6 @@ def abrir_configuracoes(parent, usuario_logado):
 def janela_principal(usuario_logado, tema="Claro"):
     global ATUALIZAR_DASHBOARD_CALLBACK
     janela = tk.Tk()
-    aplicar_icone_janela(janela)
     definir_paleta_tema(tema)
     janela.title("TB Software - Sistema de Clientes")
     janela.geometry("1000x680")
@@ -5054,7 +5092,7 @@ def janela_principal(usuario_logado, tema="Claro"):
 
         tk.Label(
             area,
-            text=f"{NOME_EMPRESA}  •  {SLOGAN_EMPRESA}",
+            text="TB Software  •  Soluções que facilitam seu trabalho",
             font=FONTE_9,
             bg=COR_FUNDO,
             fg=COR_SECUNDARIA
@@ -5105,7 +5143,6 @@ def janela_principal(usuario_logado, tema="Claro"):
     def trocar_utilizador():
         """Autentica outra conta e muda o utilizador da sessão atual."""
         janela_troca = tk.Toplevel(janela)
-        aplicar_icone_janela(janela_troca)
         registrar_tema_janela(janela_troca)
         janela_troca.title("TB Software - Trocar de Utilizador")
         janela_troca.geometry("430x340")
@@ -5295,10 +5332,25 @@ def janela_principal(usuario_logado, tema="Claro"):
         janela_troca.bind("<Return>", lambda event: confirmar_troca())
         entrada_troca_usuario.focus_set()
 
+    sessao_encerrada = {"valor": False}
+
+    def sair_aplicacao():
+        if sessao_encerrada["valor"]:
+            return
+        sessao_encerrada["valor"] = True
+        try:
+            registar_auditoria("Logout", detalhes="Sessão encerrada pelo utilizador", usuario=usuario_logado)
+        finally:
+            try:
+                janela.destroy()
+            except tk.TclError:
+                pass
+
     criar_botao_menu("Trocar de Utilizador", trocar_utilizador, "trocar_utilizador")
-    criar_botao_menu("Sair", janela.destroy, "sair")
+    criar_botao_menu("Sair", sair_aplicacao, "sair")
 
     criar_rodape(janela)
+    janela.protocol("WM_DELETE_WINDOW", sair_aplicacao)
 
     # Disponibiliza uma atualização imediata do Dashboard após operações
     # que alterem os clientes, sem precisar clicar novamente em Início.
@@ -5336,7 +5388,9 @@ def janela_principal(usuario_logado, tema="Claro"):
                 "Esta conta foi bloqueada ou desativada. A sessão será encerrada.",
                 parent=janela
             )
+            registar_auditoria("Sessão encerrada por bloqueio", detalhes="A conta deixou de estar ativa", usuario=usuario_logado)
             try:
+                sessao_encerrada["valor"] = True
                 janela.destroy()
             except tk.TclError:
                 pass
@@ -5349,7 +5403,18 @@ def janela_principal(usuario_logado, tema="Claro"):
 
     janela.after(5000, verificar_sessao_ativa)
 
-    # Mostrar resumen al iniciar sesión y después comprobar horarios cada minuto.
+    def backup_periodico():
+        try:
+            if not janela.winfo_exists():
+                return
+            criar_backup_automatico(rotulo="periodico")
+            janela.after(6 * 60 * 60 * 1000, backup_periodico)
+        except tk.TclError:
+            pass
+
+    janela.after(6 * 60 * 60 * 1000, backup_periodico)
+
+    # Mostrar resumo ao iniciar sessão e depois verificar horários cada minuto.
     # Se programa en la ventana principal para que el ciclo se detenga al cerrar sesión.
     janela.after(1800, lambda w=janela: monitorar_lembretes_agendados(w, USUARIO_AUDITORIA_ATUAL or usuario_logado, inicio=True))
     janela.mainloop()
@@ -5637,8 +5702,6 @@ def cadastrar_cliente():
         return existente
 
     janela_cadastro = tk.Toplevel()
-
-    aplicar_icone_janela(janela_cadastro)
     janela_cadastro.withdraw()  # Evita aparecer no canto antes de estar posicionada.
     registar_janela_aberta("novo_cliente", janela_cadastro)
     registrar_tema_janela(janela_cadastro)
@@ -5732,7 +5795,7 @@ def cadastrar_cliente():
         return entrada
 
     entrada_nif = criar_campo(
-        "NIF / Identificação Fiscal",
+        "NIF / Identificação Fiscal *",
         0,
         0,
         width=24
@@ -6287,8 +6350,6 @@ def listar_clientes():
         return existente
 
     janela_lista = tk.Toplevel()
-
-    aplicar_icone_janela(janela_lista)
     registar_janela_aberta("ver_clientes", janela_lista)
     registrar_tema_janela(janela_lista)
 
@@ -6742,8 +6803,6 @@ def procurar_cliente():
         return existente
 
     janela_procurar = tk.Toplevel()
-
-    aplicar_icone_janela(janela_procurar)
     janela_procurar.withdraw()  # Evita aparecer no canto antes de estar posicionada.
     registar_janela_aberta("procurar_cliente", janela_procurar)
     registrar_tema_janela(janela_procurar)
@@ -7686,8 +7745,6 @@ def alterar_senha(usuario_logado):
         return existente
 
     janela_senha = tk.Toplevel()
-
-    aplicar_icone_janela(janela_senha)
     registar_janela_aberta(chave_janela, janela_senha)
     registrar_tema_janela(janela_senha)
 
@@ -7821,11 +7878,11 @@ def alterar_senha(usuario_logado):
         #             VERIFICAR TAMANHO
         # ==================================================
 
-        if len(nova_senha) < 6:
+        if len(nova_senha) < MIN_SENHA:
 
             messagebox.showerror(
                 "Erro",
-                "A nova senha deve ter pelo menos 6 caracteres."
+                f"A nova senha deve ter pelo menos {MIN_SENHA} caracteres."
             )
 
             return
@@ -7901,7 +7958,9 @@ def alterar_senha(usuario_logado):
 
             cursor.execute("""
                 UPDATE usuarios
-                SET senha = ?
+                SET senha = ?,
+                    codigo_recuperacao = NULL,
+                    codigo_recuperacao_criado_em = NULL
                 WHERE usuario = ?
             """, (
                 nova_senha_hash,
@@ -7966,7 +8025,6 @@ def alterar_senha(usuario_logado):
 def solicitar_substituicao_senha_padrao(parent, usuario):
     """Impede a utilização continuada de admin/1234 numa base antiga."""
     janela = tk.Toplevel(parent)
-    aplicar_icone_janela(janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Atualização de segurança")
     janela.geometry("470x350")
@@ -8006,7 +8064,7 @@ def solicitar_substituicao_senha_padrao(parent, usuario):
         nova = entrada_nova.get()
         confirmar = entrada_confirmacao.get()
         if len(nova) < 10:
-            messagebox.showerror("Segurança", "A nova senha deve ter pelo menos 10 caracteres.", parent=janela)
+            messagebox.showerror("Segurança", f"A nova senha deve ter pelo menos {MIN_SENHA} caracteres.", parent=janela)
             entrada_nova.focus_set()
             return
         if nova != confirmar:
@@ -8080,8 +8138,6 @@ def configurar_primeiro_administrador(parent):
         return None
 
     janela = tk.Toplevel(parent)
-
-    aplicar_icone_janela(janela)
     registrar_tema_janela(janela)
     janela.title("TB Software - Configuração inicial")
     janela.geometry("490x470")
@@ -8135,9 +8191,9 @@ def configurar_primeiro_administrador(parent):
             )
             entrada_usuario_admin.focus_set()
             return
-        if len(senha) < 10:
+        if len(senha) < MIN_SENHA:
             messagebox.showerror(
-                "Configuração inicial", "Utilize uma senha com pelo menos 10 caracteres.",
+                "Configuração inicial", f"Utilize uma senha com pelo menos {MIN_SENHA} caracteres.",
                 parent=janela
             )
             entrada_senha_admin.focus_set()
@@ -8218,221 +8274,229 @@ def configurar_primeiro_administrador(parent):
 #                    JANELA DE LOGIN
 # ============================================================
 
-# Preparar primeiro as tabelas base. Esta etapa não cria contas padrão nem senhas conhecidas.
-inicializar_banco()
-atualizar_tabela_clientes()
-atualizar_tabela_usuarios()
-atualizar_tabela_auditoria()
-atualizar_tabelas_atendimento_lembretes()
+def iniciar_aplicacao():
+    """Inicializa a base, cria a interface de login e inicia o ciclo Tkinter."""
+    global NOME_EMPRESA, SLOGAN_EMPRESA
+    global janela_login, entrada_usuario, entrada_senha
 
-garantir_campos_recuperacao()
-_configuracoes_empresa = carregar_configuracoes_empresa()
-NOME_EMPRESA = _configuracoes_empresa.get("nome_empresa", NOME_EMPRESA)
-SLOGAN_EMPRESA = _configuracoes_empresa.get("slogan_empresa", SLOGAN_EMPRESA)
+    # Preparar primeiro as tabelas base. Esta etapa não cria contas padrão nem senhas conhecidas.
+    inicializar_banco()
+    atualizar_tabela_clientes()
+    atualizar_tabela_usuarios()
+    atualizar_tabela_auditoria()
+    atualizar_tabelas_atendimento_lembretes()
 
-janela_login = tk.Tk()
+    garantir_campos_recuperacao()
+    _configuracoes_empresa = carregar_configuracoes_empresa()
+    NOME_EMPRESA = _configuracoes_empresa.get("nome_empresa", NOME_EMPRESA)
+    SLOGAN_EMPRESA = _configuracoes_empresa.get("slogan_empresa", SLOGAN_EMPRESA)
 
-aplicar_icone_janela(janela_login)
-# Manter o login oculto enquanto os widgets são criados e posicionados; assim
-# o Windows nunca mostra a geometria provisória pequena no canto do ecrã.
-janela_login.withdraw()
-registrar_tema_janela(janela_login)
-janela_login.title("TB Software - Login")
-janela_login.geometry("480x560")
-janela_login.resizable(False, False)
-janela_login.configure(bg=COR_FUNDO)
+    janela_login = tk.Tk()
+    # Manter o login oculto enquanto os widgets são criados e posicionados; assim
+    # o Windows nunca mostra a geometria provisória pequena no canto do ecrã.
+    janela_login.withdraw()
+    registrar_tema_janela(janela_login)
+    janela_login.title("TB Software - Login")
+    janela_login.geometry("480x560")
+    janela_login.resizable(False, False)
+    janela_login.configure(bg=COR_FUNDO)
 
-configurar_estilos()
+    configurar_estilos()
 
-# Marca
-tk.Label(
-    janela_login,
-    text="TB Software",
-    font=FONTE_27_NEGRITO,
-    bg=COR_FUNDO,
-    fg=COR_PRINCIPAL
-).pack(pady=(48, 2))
+    # Marca
+    tk.Label(
+        janela_login,
+        text="TB Software",
+        font=FONTE_27_NEGRITO,
+        bg=COR_FUNDO,
+        fg=COR_PRINCIPAL
+    ).pack(pady=(48, 2))
 
-tk.Label(
-    janela_login,
-    text=SLOGAN_EMPRESA,
-    font=FONTE_10,
-    bg=COR_FUNDO,
-    fg=COR_SECUNDARIA
-).pack(pady=(0, 22))
+    tk.Label(
+        janela_login,
+        text=SLOGAN_EMPRESA,
+        font=FONTE_10,
+        bg=COR_FUNDO,
+        fg=COR_SECUNDARIA
+    ).pack(pady=(0, 22))
 
-cartao_login = tk.Frame(
-    janela_login,
-    bg="white",
-    bd=1,
-    relief="solid"
-)
-cartao_login.pack(
-    padx=58,
-    fill="x"
-)
-
-tk.Label(
-    cartao_login,
-    text="Entrar no sistema",
-    font=FONTE_14_NEGRITO,
-    bg="white",
-    fg=COR_TEXTO
-).pack(
-    pady=(22, 16)
-)
-
-tk.Label(
-    cartao_login,
-    text="Utilizador",
-    font=FONTE_9_NEGRITO,
-    bg="white",
-    fg=COR_TEXTO
-).pack(
-    anchor="w",
-    padx=28
-)
-
-entrada_usuario = tk.Entry(
-    cartao_login,
-    font=FONTE_10,
-    relief="solid",
-    bd=1
-)
-entrada_usuario.pack(
-    padx=28,
-    pady=(6, 15),
-    ipady=4,
-    fill="x"
-)
-
-tk.Label(
-    cartao_login,
-    text="Senha",
-    font=FONTE_9_NEGRITO,
-    bg="white",
-    fg=COR_TEXTO
-).pack(
-    anchor="w",
-    padx=28
-)
-
-entrada_senha = tk.Entry(
-    cartao_login,
-    font=FONTE_10,
-    show="*",
-    relief="solid",
-    bd=1
-)
-entrada_senha.pack(
-    padx=28,
-    pady=(6, 10),
-    ipady=4,
-    fill="x"
-)
-
-# Recuperação de senha: disponível diretamente na tela de login.
-tk.Button(
-    cartao_login,
-    text="Esqueci a senha",
-    command=lambda: recuperar_senha(janela_login),
-    font=FONTE_9,
-    bg="white",
-    fg=COR_PRINCIPAL,
-    activebackground="white",
-    activeforeground=COR_PRINCIPAL,
-    relief="flat",
-    cursor="hand2",
-    bd=0
-).pack(pady=(0, 14))
-
-tk.Button(
-    cartao_login,
-    text="Entrar",
-    font=FONTE_10_NEGRITO,
-    bg=COR_BOTAO,
-    fg="white",
-    activebackground=COR_PRINCIPAL,
-    activeforeground="white",
-    relief="flat",
-    cursor="hand2",
-    command=verificar_login
-).pack(
-    padx=28,
-    fill="x",
-    ipady=7,
-    pady=(0, 20)
-)
-
-tk.Label(
-    janela_login,
-    text="Sistema de Gestão de Clientes",
-    font=FONTE_9,
-    bg=COR_FUNDO,
-    fg=COR_SECUNDARIA
-).pack(
-    pady=18
-)
-
-criar_rodape(janela_login)
-
-janela_login.bind(
-    "<Return>",
-    lambda event: verificar_login()
-)
-
-entrada_usuario.focus_set()
-
-# Posicionar e dimensionar o login antes de o mostrar. O login usa este
-# cálculo próprio para preservar os 480x560 em ecrãs normais; só reduz a altura
-# se a área útil do Windows for realmente menor, mantendo margem para a barra
-# de título e a barra de tarefas.
-def posicionar_login_inicial():
-    largura_desejada = 480
-    altura_desejada = 560
-    esquerda, topo = 0, 0
-    largura_area = int(janela_login.winfo_screenwidth())
-    altura_area = int(janela_login.winfo_screenheight())
-
-    try:
-        rect = wintypes.RECT()
-        ok = ctypes.windll.user32.SystemParametersInfoW(
-            0x0030, 0, ctypes.byref(rect), 0  # SPI_GETWORKAREA
-        )
-        if ok:
-            largura_calculada = int(rect.right - rect.left)
-            altura_calculada = int(rect.bottom - rect.top)
-            if largura_calculada >= 320 and altura_calculada >= 300:
-                esquerda, topo = int(rect.left), int(rect.top)
-                largura_area = largura_calculada
-                altura_area = altura_calculada
-    except (AttributeError, OSError, TypeError, ValueError):
-        pass
-
-    # Não subtrair decorações duas vezes: geometry recebe as dimensões da
-    # janela Tk, e a reserva abaixo é apenas uma margem de segurança exterior.
-    largura_final = min(largura_desejada, max(320, largura_area - 20))
-    altura_final = min(altura_desejada, max(280, altura_area - 56))
-    x = esquerda + max(8, (largura_area - largura_final) // 2)
-    y = topo + max(8, (altura_area - altura_final) // 2)
-
-    janela_login.geometry(
-        f"{largura_final}x{altura_final}+{x}+{y}"
+    cartao_login = tk.Frame(
+        janela_login,
+        bg="white",
+        bd=1,
+        relief="solid"
     )
-    janela_login.update_idletasks()
-    janela_login.deiconify()
-    janela_login.lift()
+    cartao_login.pack(
+        padx=58,
+        fill="x"
+    )
+
+    tk.Label(
+        cartao_login,
+        text="Entrar no sistema",
+        font=FONTE_14_NEGRITO,
+        bg="white",
+        fg=COR_TEXTO
+    ).pack(
+        pady=(22, 16)
+    )
+
+    tk.Label(
+        cartao_login,
+        text="Utilizador",
+        font=FONTE_9_NEGRITO,
+        bg="white",
+        fg=COR_TEXTO
+    ).pack(
+        anchor="w",
+        padx=28
+    )
+
+    entrada_usuario = tk.Entry(
+        cartao_login,
+        font=FONTE_10,
+        relief="solid",
+        bd=1
+    )
+    entrada_usuario.pack(
+        padx=28,
+        pady=(6, 15),
+        ipady=4,
+        fill="x"
+    )
+
+    tk.Label(
+        cartao_login,
+        text="Senha",
+        font=FONTE_9_NEGRITO,
+        bg="white",
+        fg=COR_TEXTO
+    ).pack(
+        anchor="w",
+        padx=28
+    )
+
+    entrada_senha = tk.Entry(
+        cartao_login,
+        font=FONTE_10,
+        show="*",
+        relief="solid",
+        bd=1
+    )
+    entrada_senha.pack(
+        padx=28,
+        pady=(6, 10),
+        ipady=4,
+        fill="x"
+    )
+
+    # Recuperação de senha: disponível diretamente na tela de login.
+    tk.Button(
+        cartao_login,
+        text="Esqueci a senha",
+        command=lambda: recuperar_senha(janela_login),
+        font=FONTE_9,
+        bg="white",
+        fg=COR_PRINCIPAL,
+        activebackground="white",
+        activeforeground=COR_PRINCIPAL,
+        relief="flat",
+        cursor="hand2",
+        bd=0
+    ).pack(pady=(0, 14))
+
+    tk.Button(
+        cartao_login,
+        text="Entrar",
+        font=FONTE_10_NEGRITO,
+        bg=COR_BOTAO,
+        fg="white",
+        activebackground=COR_PRINCIPAL,
+        activeforeground="white",
+        relief="flat",
+        cursor="hand2",
+        command=verificar_login
+    ).pack(
+        padx=28,
+        fill="x",
+        ipady=7,
+        pady=(0, 20)
+    )
+
+    tk.Label(
+        janela_login,
+        text="Sistema de Gestão de Clientes",
+        font=FONTE_9,
+        bg=COR_FUNDO,
+        fg=COR_SECUNDARIA
+    ).pack(
+        pady=18
+    )
+
+    criar_rodape(janela_login)
+
+    janela_login.bind(
+        "<Return>",
+        lambda event: verificar_login()
+    )
+
     entrada_usuario.focus_set()
 
-# Na primeira execução, configurar uma conta de Administrador sem usar uma senha padrão.
-def iniciar_login_com_seguranca():
-    # Mostrar e posicionar a raiz primeiro; assim o diálogo modal não fica associado
-    # a uma janela principal oculta em certos gestores de janelas do Windows.
-    posicionar_login_inicial()
-    if not existe_algum_utilizador():
-        janela_login.after(150, lambda: configurar_primeiro_administrador(janela_login))
+    # Posicionar e dimensionar o login antes de o mostrar. O login usa este
+    # cálculo próprio para preservar os 480x560 em ecrãs normais; só reduz a altura
+    # se a área útil do Windows for realmente menor, mantendo margem para a barra
+    # de título e a barra de tarefas.
+    def posicionar_login_inicial():
+        largura_desejada = 480
+        altura_desejada = 560
+        esquerda, topo = 0, 0
+        largura_area = int(janela_login.winfo_screenwidth())
+        altura_area = int(janela_login.winfo_screenheight())
 
-# Garantir que a base está inicializada e só pedir configuração quando não há utilizadores.
-janela_login.after_idle(iniciar_login_com_seguranca)
+        try:
+            rect = wintypes.RECT()
+            ok = ctypes.windll.user32.SystemParametersInfoW(
+                0x0030, 0, ctypes.byref(rect), 0  # SPI_GETWORKAREA
+            )
+            if ok:
+                largura_calculada = int(rect.right - rect.left)
+                altura_calculada = int(rect.bottom - rect.top)
+                if largura_calculada >= 320 and altura_calculada >= 300:
+                    esquerda, topo = int(rect.left), int(rect.top)
+                    largura_area = largura_calculada
+                    altura_area = altura_calculada
+        except (AttributeError, OSError, TypeError, ValueError):
+            pass
 
-janela_login.mainloop()
+        # Não subtrair decorações duas vezes: geometry recebe as dimensões da
+        # janela Tk, e a reserva abaixo é apenas uma margem de segurança exterior.
+        largura_final = min(largura_desejada, max(320, largura_area - 20))
+        altura_final = min(altura_desejada, max(280, altura_area - 56))
+        x = esquerda + max(8, (largura_area - largura_final) // 2)
+        y = topo + max(8, (altura_area - altura_final) // 2)
+
+        janela_login.geometry(
+            f"{largura_final}x{altura_final}+{x}+{y}"
+        )
+        janela_login.update_idletasks()
+        janela_login.deiconify()
+        janela_login.lift()
+        entrada_usuario.focus_set()
+
+    # Na primeira execução, configurar uma conta de Administrador sem usar uma senha padrão.
+    def iniciar_login_com_seguranca():
+        # Mostrar e posicionar a raiz primeiro; assim o diálogo modal não fica associado
+        # a uma janela principal oculta em certos gestores de janelas do Windows.
+        posicionar_login_inicial()
+        if not existe_algum_utilizador():
+            janela_login.after(150, lambda: configurar_primeiro_administrador(janela_login))
+
+    # Garantir que a base está inicializada e só pedir configuração quando não há utilizadores.
+    janela_login.after_idle(iniciar_login_com_seguranca)
+
+    janela_login.mainloop()
+
+
+
+if __name__ == "__main__":
+    iniciar_aplicacao()
